@@ -1,5 +1,6 @@
 package com.example.UberBookingService.services;
 
+import com.example.UberBookingService.apis.LocationServiceApi;
 import com.example.UberBookingService.dto.*;
 import com.example.UberBookingService.repository.BookingRepository;
 import com.example.UberBookingService.repository.DriverRepository;
@@ -10,6 +11,9 @@ import com.example.UberProjectEntityService.models.Passenger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 import java.util.Arrays;
 import java.util.List;
@@ -21,16 +25,18 @@ public class BookingService implements IBookingService {
     private final PassengerRepository passengerRepository;
     private final BookingRepository bookingRepository;
     private final RestTemplate restTemplate;
-    private static final String LOCATION_SERVICE = "http://localhost:7778";
+    //private static final String LOCATION_SERVICE = "http://localhost:7778";
     private final DriverRepository driverRepository;
-
+    private final LocationServiceApi locationServiceApi;
     public BookingService(PassengerRepository passengerRepository,
                           BookingRepository bookingRepository,
-                          DriverRepository driverRepository) {
+                          DriverRepository driverRepository,
+                          LocationServiceApi locationServiceApi) {
         this.passengerRepository = passengerRepository;
         this.bookingRepository = bookingRepository;
         this.restTemplate = new RestTemplate();
         this.driverRepository = driverRepository;
+        this.locationServiceApi = locationServiceApi;
     }
 
 
@@ -48,7 +54,12 @@ public class BookingService implements IBookingService {
 
         //Make an api call to location service to fetch the nearBy drivers
         NearbyDriversRequestDto request = NearbyDriversRequestDto.builder().latitude(bookingDetails.getStartLocation().getLatitude()).longitude(bookingDetails.getEndLocation().getLongitude()).build();
-        ResponseEntity<DriverLocationDto[]> result = restTemplate.postForEntity(LOCATION_SERVICE+"/api/location/nearby/drivers", request, DriverLocationDto[].class);
+
+        //This is async request
+        processNearByDriverAsync(request);
+
+        //Below is synchromous way
+        /*ResponseEntity<DriverLocationDto[]> result = restTemplate.postForEntity(LOCATION_SERVICE+"/api/location/nearby/drivers", request, DriverLocationDto[].class);
 
         if(result.getStatusCode().is2xxSuccessful() && result.getBody()!=null){
             System.out.println("Hello***************************************"+ result.getBody());
@@ -57,7 +68,7 @@ public class BookingService implements IBookingService {
             driverLocationDtos.forEach(driverLocationDto -> {
                 System.out.println(driverLocationDto.getDriverId()+"---"+driverLocationDto.getLatitude()+"---"+driverLocationDto.getLongitude());
             });
-        }
+        }*/
 
 
 
@@ -70,5 +81,30 @@ public class BookingService implements IBookingService {
 
     public UpdateBookingResponseDto updateBooking(UpdateBookingRequestDto updateBookingRequestDto, Long bookingId){
         return null;
+    }
+
+    private void processNearByDriverAsync(NearbyDriversRequestDto nearbyDriversRequestDto){
+        Call<DriverLocationDto[]> call = locationServiceApi.getNearbyDrivers(nearbyDriversRequestDto);
+        call.enqueue(new Callback<DriverLocationDto[]>() {
+            @Override
+            public void onResponse(Call<DriverLocationDto[]> call, Response<DriverLocationDto[]> response) {
+                if(response.isSuccessful() && response.body()!=null){
+                    System.out.println("Hello***************************************"+ response.body());
+                    List<DriverLocationDto> driverLocationDtos = Arrays.asList(response.body());
+                    System.out.println(driverLocationDtos.size());
+                    driverLocationDtos.forEach(driverLocationDto -> {
+                        System.out.println(driverLocationDto.getDriverId()+"---"+driverLocationDto.getLatitude()+"---"+driverLocationDto.getLongitude());
+                    });
+                }
+                else{
+                    System.out.println("Request failed "+response.message());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<DriverLocationDto[]> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
     }
 }
