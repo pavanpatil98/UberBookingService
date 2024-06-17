@@ -7,6 +7,7 @@ import com.example.UberBookingService.repository.DriverRepository;
 import com.example.UberBookingService.repository.PassengerRepository;
 import com.example.UberProjectEntityService.models.Booking;
 import com.example.UberProjectEntityService.models.BookingStatus;
+import com.example.UberProjectEntityService.models.Driver;
 import com.example.UberProjectEntityService.models.Passenger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import retrofit2.Response;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 @Service
 public class BookingService implements IBookingService {
@@ -80,7 +82,14 @@ public class BookingService implements IBookingService {
     }
 
     public UpdateBookingResponseDto updateBooking(UpdateBookingRequestDto updateBookingRequestDto, Long bookingId){
-        return null;
+            Optional<Driver> driver = driverRepository.findById(updateBookingRequestDto.getDriverId().get());
+            bookingRepository.updateBookingStatusAndDriverById(bookingId, BookingStatus.valueOf(updateBookingRequestDto.getStatus()),driver.get());
+            Optional<Booking> booking = bookingRepository.findById(bookingId);
+            return  UpdateBookingResponseDto.builder()
+                    .bookingId(bookingId)
+                    .status(booking.get().getBookingStatus())
+                    .driver(Optional.ofNullable(booking.get().getDriver()))
+                    .build();
     }
 
     private void processNearByDriverAsync(NearbyDriversRequestDto nearbyDriversRequestDto){
