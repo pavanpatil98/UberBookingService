@@ -12,7 +12,7 @@ spring:
       ddl-auto: validate
 
 server:
-  port :7479
+  port: 7479
 
 
 eureka:
@@ -21,3 +21,5 @@ eureka:
       defaultZone: http://localhost:8762/eureka
   instance:
     prefer-ip-address: true
+    non-secure-port-enabled: true
+
