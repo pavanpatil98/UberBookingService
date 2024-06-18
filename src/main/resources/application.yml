@@ -1,6 +1,16 @@
 spring:
   application:
     name: UberBookingService
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: sample-group-2
+      auto-offset-reset: earliest
 
   datasource:
     url: jdbc:mysql://localhost:3307/uber_db
